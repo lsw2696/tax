@@ -150,6 +150,15 @@ app.post('/api/assess', async (c) => {
       }
     }
     
+    // 기존 판정 결과 삭제 (중복 방지)
+    await DB.prepare(`
+      DELETE FROM assessment_results WHERE company_id = ? AND year = ?
+    `).bind(company_id, year).run()
+    
+    await DB.prepare(`
+      DELETE FROM assessment_sessions WHERE company_id = ? AND year = ?
+    `).bind(company_id, year).run()
+    
     // 결과를 DB에 저장
     for (const result of results) {
       await DB.prepare(`
@@ -1973,6 +1982,8 @@ app.get('/result', async (c) => {
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     </head>
     <body class="bg-gray-50">
         <!-- 헤더 -->
@@ -2466,8 +2477,147 @@ app.get('/result', async (c) => {
                 window.print();
             }
 
-            function downloadPDF() {
-                alert('PDF 다운로드 기능은 추후 지원 예정입니다.');
+            async function downloadPDF() {
+                try {
+                    // PDF 다운로드 시작 알림
+                    const downloadBtn = event.target.closest('button');
+                    const originalText = downloadBtn.innerHTML;
+                    downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>PDF 생성 중...';
+                    downloadBtn.disabled = true;
+                    
+                    // jsPDF 라이브러리 로드
+                    const { jsPDF } = window.jspdf;
+                    
+                    // PDF 생성 (A4 크기, 세로 방향)
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pageWidth = pdf.internal.pageSize.getWidth();
+                    const pageHeight = pdf.internal.pageSize.getHeight();
+                    
+                    // 한글 폰트 지원을 위한 설정 (기본 폰트 사용)
+                    pdf.setFont('helvetica');
+                    
+                    let yPosition = 20;
+                    
+                    // 제목
+                    pdf.setFontSize(20);
+                    pdf.setTextColor(79, 70, 229); // indigo-600
+                    pdf.text('조세특례제한법 세액공제 판정 결과', pageWidth / 2, yPosition, { align: 'center' });
+                    
+                    yPosition += 15;
+                    
+                    // 생성 날짜
+                    pdf.setFontSize(10);
+                    pdf.setTextColor(100, 100, 100);
+                    const today = new Date().toLocaleDateString('ko-KR');
+                    pdf.text(\`Generated: \${today}\`, pageWidth / 2, yPosition, { align: 'center' });
+                    
+                    yPosition += 15;
+                    
+                    // 요약 정보 박스
+                    pdf.setFillColor(79, 70, 229);
+                    pdf.rect(15, yPosition, pageWidth - 30, 35, 'F');
+                    
+                    pdf.setTextColor(255, 255, 255);
+                    pdf.setFontSize(12);
+                    
+                    const totalCredit = document.getElementById('total-credit').textContent;
+                    const eligibleCount = document.getElementById('eligible-count').textContent;
+                    
+                    pdf.text(\`Total Credit Amount: \${totalCredit}\`, 20, yPosition + 10);
+                    pdf.text(\`Eligible Items: \${eligibleCount}\`, 20, yPosition + 20);
+                    pdf.text('Total Reviewed Items: 19', 20, yPosition + 30);
+                    
+                    yPosition += 45;
+                    
+                    // 적용 가능 항목 섹션
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.setFontSize(14);
+                    pdf.text('Eligible Tax Credits', 15, yPosition);
+                    
+                    yPosition += 8;
+                    
+                    // 결과 데이터 가져오기 (전역 변수 사용)
+                    const eligibleResults = resultsData.filter(r => r.is_eligible === 1);
+                    
+                    pdf.setFontSize(10);
+                    
+                    eligibleResults.forEach((result, index) => {
+                        // 페이지 넘김 체크
+                        if (yPosition > pageHeight - 30) {
+                            pdf.addPage();
+                            yPosition = 20;
+                        }
+                        
+                        // 항목명
+                        pdf.setTextColor(0, 0, 0);
+                        pdf.text(\`\${index + 1}. Rule ID: \${result.credit_rule_id}\`, 20, yPosition);
+                        yPosition += 6;
+                        
+                        // 공제액
+                        pdf.setTextColor(22, 163, 74); // green-600
+                        const creditAmount = result.credit_amount.toLocaleString();
+                        pdf.text(\`   Amount: \${creditAmount} KRW\`, 20, yPosition);
+                        yPosition += 6;
+                        
+                        // 사유
+                        pdf.setTextColor(100, 100, 100);
+                        const reasons = result.reasons || 'N/A';
+                        const reasonLines = pdf.splitTextToSize(\`   Reason: \${reasons}\`, pageWidth - 40);
+                        pdf.text(reasonLines, 20, yPosition);
+                        yPosition += reasonLines.length * 5 + 5;
+                    });
+                    
+                    // 미적용 항목 섹션
+                    if (yPosition > pageHeight - 50) {
+                        pdf.addPage();
+                        yPosition = 20;
+                    } else {
+                        yPosition += 10;
+                    }
+                    
+                    pdf.setFontSize(14);
+                    pdf.setTextColor(0, 0, 0);
+                    pdf.text('Ineligible Items', 15, yPosition);
+                    
+                    yPosition += 8;
+                    
+                    const ineligibleResults = resultsData.filter(r => r.is_eligible === 0);
+                    
+                    pdf.setFontSize(10);
+                    
+                    ineligibleResults.forEach((result, index) => {
+                        if (yPosition > pageHeight - 30) {
+                            pdf.addPage();
+                            yPosition = 20;
+                        }
+                        
+                        pdf.setTextColor(100, 100, 100);
+                        pdf.text(\`\${index + 1}. Rule ID: \${result.credit_rule_id}\`, 20, yPosition);
+                        yPosition += 6;
+                        
+                        const reasons = result.reasons || 'Requirements not met';
+                        const reasonLines = pdf.splitTextToSize(\`   Reason: \${reasons}\`, pageWidth - 40);
+                        pdf.text(reasonLines, 20, yPosition);
+                        yPosition += reasonLines.length * 5 + 5;
+                    });
+                    
+                    // PDF 저장
+                    const filename = \`tax_credit_assessment_\${new Date().getTime()}.pdf\`;
+                    pdf.save(filename);
+                    
+                    // 버튼 복원
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.disabled = false;
+                    
+                } catch (error) {
+                    console.error('PDF generation error:', error);
+                    alert('PDF Download failed. Please try again.');
+                    
+                    // 버튼 복원
+                    const downloadBtn = event.target.closest('button');
+                    downloadBtn.innerHTML = '<i class="fas fa-file-pdf mr-2"></i>PDF Download';
+                    downloadBtn.disabled = false;
+                }
             }
 
             // 페이지 로드 시 결과 로드
