@@ -1,0 +1,652 @@
+{
+  "employment_increase": {
+    "id": 1,
+    "name": "고용증대 세액공제",
+    "article": "제29조의7",
+    "category": "고용",
+    "description": "상시근로자 수가 직전 과세연도보다 증가한 경우 1인당 공제",
+    "requirements": {
+      "employee_increase": {
+        "min": 1,
+        "description": "상시근로자 증가 인원"
+      },
+      "company_type": {
+        "values": [
+          "중소기업",
+          "중견기업",
+          "대기업"
+        ],
+        "description": "기업 규모"
+      }
+    },
+    "credit_amount": {
+      "중소기업": {
+        "base": 11000000,
+        "description": "1인당 1,100만원 (수도권 외 1,200만원)"
+      },
+      "중견기업": {
+        "base": 9000000,
+        "description": "1인당 900만원 (수도권 외 1,000만원)"
+      },
+      "대기업": {
+        "base": 4500000,
+        "description": "1인당 450만원 (수도권 외 500만원)"
+      }
+    }
+  },
+  "youth_employment": {
+    "id": 2,
+    "name": "청년 정규직 고용 추가 공제",
+    "article": "제29조의7",
+    "category": "고용",
+    "description": "15~34세 청년을 정규직으로 채용한 경우 추가 공제",
+    "requirements": {
+      "youth_increase": {
+        "min": 1,
+        "description": "청년 정규직 증가 인원"
+      },
+      "age": {
+        "min": 15,
+        "max": 34,
+        "description": "채용 당시 나이"
+      },
+      "employment_type": {
+        "value": "정규직",
+        "description": "고용 형태"
+      }
+    },
+    "credit_amount": {
+      "중소기업": {
+        "additional": 12000000,
+        "description": "기본 공제에 추가로 1,200만원"
+      },
+      "중견기업": {
+        "additional": 10000000,
+        "description": "기본 공제에 추가로 1,000만원"
+      },
+      "대기업": {
+        "additional": 5000000,
+        "description": "기본 공제에 추가로 500만원"
+      }
+    }
+  },
+  "disabled_employment": {
+    "id": 3,
+    "name": "장애인 고용 세액공제",
+    "article": "제29조의8",
+    "category": "고용",
+    "description": "장애인을 고용한 경우 1인당 공제",
+    "requirements": {
+      "disabled_employees": {
+        "min": 1,
+        "description": "장애인 근로자 수"
+      },
+      "disability_certificate": {
+        "required": true,
+        "description": "장애인 증명서 보유"
+      }
+    },
+    "credit_amount": {
+      "per_person": 9600000,
+      "description": "장애인 1인당 연 960만원 (월 80만원 × 12개월)"
+    }
+  },
+  "career_break_women": {
+    "id": 4,
+    "name": "경력단절여성 재고용 세액공제",
+    "article": "제29조의9",
+    "category": "고용",
+    "description": "경력단절여성을 재고용한 경우 공제",
+    "requirements": {
+      "career_break": {
+        "min_months": 36,
+        "description": "고용단절 기간 3년 이상"
+      },
+      "gender": {
+        "value": "여성",
+        "description": "성별"
+      },
+      "reemployment": {
+        "required": true,
+        "description": "재고용 여부"
+      }
+    },
+    "credit_amount": {
+      "per_person": 11000000,
+      "max_period_years": 2,
+      "description": "1인당 연 1,100만원 (최대 2년)"
+    }
+  },
+  "social_insurance": {
+    "id": 5,
+    "name": "사회보험료 세액공제",
+    "article": "제30조의4",
+    "category": "고용",
+    "description": "근로자의 사회보험료(고용·산재보험) 사업주 부담분 공제",
+    "requirements": {
+      "total_salary": {
+        "max": 1000000000,
+        "description": "연간 총급여 10억원 이하"
+      },
+      "company_type": {
+        "value": "중소기업",
+        "description": "중소기업만 해당"
+      },
+      "insurance_paid": {
+        "required": true,
+        "description": "사회보험료 납부 실적"
+      }
+    },
+    "credit_amount": {
+      "rate": 0.25,
+      "max_per_person": 1000000,
+      "description": "신규·청년 근로자 사업주 부담분의 25% (인당 연 100만원 한도)"
+    }
+  },
+  "sme_special_reduction": {
+    "id": 6,
+    "name": "중소기업 특별세액감면",
+    "article": "제7조",
+    "category": "중소기업",
+    "description": "중소기업의 소득에 대한 세액감면",
+    "requirements": {
+      "company_type": {
+        "value": "중소기업",
+        "description": "중소기업 요건 충족"
+      },
+      "business_income": {
+        "required": true,
+        "description": "사업소득 발생"
+      },
+      "excluded_industries": {
+        "values": [
+          "금융·보험업",
+          "유흥업",
+          "부동산임대업",
+          "전문서비스업"
+        ],
+        "description": "제외업종 해당 여부"
+      }
+    },
+    "credit_amount": {
+      "제조업": {
+        "rate": 0.1,
+        "description": "소득세 또는 법인세의 10% 감면"
+      },
+      "광업": {
+        "rate": 0.1,
+        "description": "소득세 또는 법인세의 10% 감면"
+      },
+      "건설업": {
+        "rate": 0.1,
+        "description": "소득세 또는 법인세의 10% 감면"
+      },
+      "도·소매업": {
+        "rate": 0.1,
+        "description": "소득세 또는 법인세의 10% 감면"
+      },
+      "기타업종": {
+        "rate": 0.05,
+        "description": "소득세 또는 법인세의 5% 감면"
+      }
+    }
+  },
+  "startup_sme_reduction": {
+    "id": 7,
+    "name": "창업중소기업 세액감면",
+    "article": "제6조",
+    "category": "중소기업",
+    "description": "창업 후 5년간 소득세·법인세 감면",
+    "requirements": {
+      "startup_date": {
+        "within_years": 5,
+        "description": "창업 후 5년 이내"
+      },
+      "company_type": {
+        "value": "중소기업",
+        "description": "중소기업 요건"
+      },
+      "startup_type": {
+        "values": [
+          "신규창업",
+          "사업전환"
+        ],
+        "description": "창업 유형"
+      }
+    },
+    "credit_amount": {
+      "청년창업": {
+        "rate": 1.0,
+        "max_years": 5,
+        "description": "100% 감면 (5년간)"
+      },
+      "일반창업": {
+        "rate": 0.5,
+        "max_years": 5,
+        "description": "50% 감면 (5년간)"
+      }
+    }
+  },
+  "manufacturing_relocation": {
+    "id": 8,
+    "name": "제조업 지방 이전 세액감면",
+    "article": "제63조",
+    "category": "중소기업",
+    "description": "수도권에서 지방으로 이전한 제조업체 감면",
+    "requirements": {
+      "from_location": {
+        "value": "수도권",
+        "description": "이전 전 소재지"
+      },
+      "to_location": {
+        "value": "지방",
+        "description": "이전 후 소재지"
+      },
+      "industry": {
+        "value": "제조업",
+        "description": "업종"
+      },
+      "relocation_completed": {
+        "required": true,
+        "description": "이전 완료"
+      }
+    },
+    "credit_amount": {
+      "rate": 1.0,
+      "max_years": 7,
+      "description": "100% 감면 (7년간)"
+    }
+  },
+  "social_enterprise_reduction": {
+    "id": 9,
+    "name": "사회적기업 및 협동조합 세액감면",
+    "article": "제85조의6",
+    "category": "중소기업",
+    "description": "인증받은 사회적기업·협동조합 감면",
+    "requirements": {
+      "certification": {
+        "required": true,
+        "description": "사회적기업 또는 협동조합 인증"
+      },
+      "certification_date": {
+        "within_years": 5,
+        "description": "인증 후 5년 이내"
+      }
+    },
+    "credit_amount": {
+      "사회적기업": {
+        "rate": 1.0,
+        "max_years": 3,
+        "description": "100% 감면 (3년), 이후 50% (2년)"
+      },
+      "협동조합": {
+        "rate": 0.5,
+        "max_years": 5,
+        "description": "50% 감면 (5년간)"
+      }
+    }
+  },
+  "youth_startup_reduction": {
+    "id": 10,
+    "name": "청년창업 세액감면",
+    "article": "제6조제3항",
+    "category": "중소기업",
+    "description": "34세 이하 청년이 창업한 경우 감면",
+    "requirements": {
+      "founder_age": {
+        "max": 34,
+        "description": "창업자 나이 34세 이하"
+      },
+      "startup_date": {
+        "within_years": 5,
+        "description": "창업 후 5년 이내"
+      },
+      "revenue": {
+        "max": 8000000000,
+        "description": "연매출 80억원 이하"
+      }
+    },
+    "credit_amount": {
+      "rate": 1.0,
+      "max_years": 5,
+      "max_amount": 200000000,
+      "description": "100% 감면 (5년간, 연 2억원 한도)"
+    }
+  },
+  "productivity_facilities": {
+    "id": 11,
+    "name": "생산성향상시설 투자 세액공제",
+    "article": "제24조",
+    "category": "투자",
+    "description": "생산성 향상을 위한 시설 투자 시 공제",
+    "requirements": {
+      "investment_amount": {
+        "min": 10000000,
+        "description": "투자금액 1천만원 이상"
+      },
+      "facility_type": {
+        "values": [
+          "자동화설비",
+          "정보시스템",
+          "계측장비"
+        ],
+        "description": "시설 종류"
+      }
+    },
+    "credit_amount": {
+      "중소기업": {
+        "rate": 0.1,
+        "description": "투자금액의 10%"
+      },
+      "중견기업": {
+        "rate": 0.05,
+        "description": "투자금액의 5%"
+      },
+      "대기업": {
+        "rate": 0.03,
+        "description": "투자금액의 3%"
+      }
+    }
+  },
+  "energy_environment_facilities": {
+    "id": 12,
+    "name": "에너지절약·환경개선시설 투자 세액공제",
+    "article": "제25조",
+    "category": "투자",
+    "description": "에너지절약 또는 환경개선 시설 투자 시 공제",
+    "requirements": {
+      "investment_amount": {
+        "min": 10000000,
+        "description": "투자금액 1천만원 이상"
+      },
+      "facility_type": {
+        "values": [
+          "에너지절약시설",
+          "온실가스감축시설",
+          "환경보전시설"
+        ],
+        "description": "시설 종류"
+      }
+    },
+    "credit_amount": {
+      "중소기업": {
+        "rate": 0.1,
+        "description": "투자금액의 10%"
+      },
+      "중견기업": {
+        "rate": 0.05,
+        "description": "투자금액의 5%"
+      },
+      "대기업": {
+        "rate": 0.03,
+        "description": "투자금액의 3%"
+      }
+    }
+  },
+  "safety_facilities": {
+    "id": 13,
+    "name": "안전시설 투자 세액공제",
+    "article": "제25조의6",
+    "category": "투자",
+    "description": "근로자 안전을 위한 시설 투자 시 공제",
+    "requirements": {
+      "investment_amount": {
+        "min": 10000000,
+        "description": "투자금액 1천만원 이상"
+      },
+      "facility_type": {
+        "values": [
+          "화재예방설비",
+          "안전보호장구",
+          "작업환경개선설비"
+        ],
+        "description": "안전시설 종류"
+      }
+    },
+    "credit_amount": {
+      "중소기업": {
+        "rate": 0.1,
+        "description": "투자금액의 10%"
+      },
+      "중견기업": {
+        "rate": 0.07,
+        "description": "투자금액의 7%"
+      },
+      "대기업": {
+        "rate": 0.03,
+        "description": "투자금액의 3%"
+      }
+    }
+  },
+  "smart_factory": {
+    "id": 14,
+    "name": "스마트공장 자동화설비 투자 세액공제",
+    "article": "제24조제1항제4호",
+    "category": "투자",
+    "description": "스마트공장 구축을 위한 자동화 설비 투자 공제",
+    "requirements": {
+      "investment_amount": {
+        "min": 100000000,
+        "description": "투자금액 1억원 이상"
+      },
+      "smart_factory_certification": {
+        "required": true,
+        "description": "스마트공장 구축 인증"
+      }
+    },
+    "credit_amount": {
+      "중소기업": {
+        "rate": 0.15,
+        "description": "투자금액의 15%"
+      },
+      "중견기업": {
+        "rate": 0.1,
+        "description": "투자금액의 10%"
+      },
+      "대기업": {
+        "rate": 0.05,
+        "description": "투자금액의 5%"
+      }
+    }
+  },
+  "rnd_expense": {
+    "id": 15,
+    "name": "연구인력개발비 세액공제",
+    "article": "제10조",
+    "category": "연구개발",
+    "description": "연구개발 활동에 사용한 비용 공제",
+    "requirements": {
+      "rnd_expense": {
+        "min": 1000000,
+        "description": "연구개발비 100만원 이상"
+      },
+      "rnd_personnel": {
+        "min": 1,
+        "description": "연구전담인력 보유"
+      },
+      "expense_type": {
+        "values": [
+          "인건비",
+          "재료비",
+          "위탁연구개발비",
+          "시험분석비"
+        ],
+        "description": "비용 종류"
+      }
+    },
+    "credit_amount": {
+      "일반연구개발비": {
+        "중소기업": {
+          "rate": 0.25,
+          "description": "비용의 25%"
+        },
+        "중견기업": {
+          "rate": 0.15,
+          "description": "비용의 15%"
+        },
+        "대기업": {
+          "rate": 0.05,
+          "description": "비용의 5%"
+        }
+      },
+      "신성장동력연구개발비": {
+        "중소기업": {
+          "rate": 0.3,
+          "description": "비용의 30%"
+        },
+        "중견기업": {
+          "rate": 0.2,
+          "description": "비용의 20%"
+        },
+        "대기업": {
+          "rate": 0.1,
+          "description": "비용의 10%"
+        }
+      }
+    }
+  },
+  "design_expense": {
+    "id": 16,
+    "name": "디자인 개발비 세액공제",
+    "article": "제10조의2",
+    "category": "연구개발",
+    "description": "디자인 개발에 사용한 비용 공제",
+    "requirements": {
+      "design_expense": {
+        "min": 1000000,
+        "description": "디자인 개발비 100만원 이상"
+      },
+      "design_type": {
+        "values": [
+          "제품디자인",
+          "포장디자인",
+          "시각디자인"
+        ],
+        "description": "디자인 종류"
+      }
+    },
+    "credit_amount": {
+      "중소기업": {
+        "rate": 0.25,
+        "description": "비용의 25%"
+      },
+      "중견기업": {
+        "rate": 0.15,
+        "description": "비용의 15%"
+      },
+      "대기업": {
+        "rate": 0.05,
+        "description": "비용의 5%"
+      }
+    }
+  },
+  "new_technology_expense": {
+    "id": 17,
+    "name": "데이터·AI·IoT 기술 개발비 공제",
+    "article": "제10조제1항제3호",
+    "category": "연구개발",
+    "description": "신기술 분야 개발비 공제 (추가 우대)",
+    "requirements": {
+      "tech_expense": {
+        "min": 1000000,
+        "description": "기술개발비 100만원 이상"
+      },
+      "tech_field": {
+        "values": [
+          "빅데이터",
+          "인공지능",
+          "IoT",
+          "클라우드"
+        ],
+        "description": "신기술 분야"
+      }
+    },
+    "credit_amount": {
+      "중소기업": {
+        "rate": 0.3,
+        "description": "비용의 30%"
+      },
+      "중견기업": {
+        "rate": 0.2,
+        "description": "비용의 20%"
+      },
+      "대기업": {
+        "rate": 0.1,
+        "description": "비용의 10%"
+      }
+    }
+  },
+  "donation": {
+    "id": 18,
+    "name": "기부금 세액공제",
+    "article": "소득세법 제59조의4",
+    "category": "기타",
+    "description": "법정·지정기부금 한도 검증 및 공제액 산출",
+    "requirements": {
+      "donation_amount": {
+        "min": 10000,
+        "description": "기부금액 1만원 이상"
+      },
+      "donation_receipt": {
+        "required": true,
+        "description": "기부금영수증 보유"
+      },
+      "donation_type": {
+        "values": [
+          "법정기부금",
+          "지정기부금"
+        ],
+        "description": "기부금 종류"
+      }
+    },
+    "credit_amount": {
+      "법정기부금": {
+        "limit_rate": 1.0,
+        "credit_rate": 0.15,
+        "description": "소득금액 100% 한도, 15% 공제율"
+      },
+      "지정기부금": {
+        "limit_rate": 0.3,
+        "credit_rate": 0.15,
+        "description": "소득금액 30% 한도, 15% 공제율"
+      }
+    }
+  },
+  "business_vehicle": {
+    "id": 19,
+    "name": "업무용 차량 비용 한도 검증",
+    "article": "법인세법 시행령 제48조",
+    "category": "기타",
+    "description": "업무용 승용차 관련 비용 손금산입 한도",
+    "requirements": {
+      "vehicle_count": {
+        "min": 1,
+        "description": "업무용 차량 보유 대수"
+      },
+      "vehicle_expense": {
+        "min": 100000,
+        "description": "차량 관련 비용"
+      },
+      "vehicle_type": {
+        "values": [
+          "9인승 이하 승용차"
+        ],
+        "description": "차량 종류"
+      }
+    },
+    "credit_amount": {
+      "감가상각비_한도": {
+        "per_vehicle": 8000000,
+        "description": "차량당 연 800만원"
+      },
+      "임차료_한도": {
+        "per_vehicle": 12000000,
+        "description": "차량당 연 1,200만원"
+      },
+      "유류비등_한도": {
+        "per_vehicle": "unlimited",
+        "description": "실제 지출액 (한도 없음)"
+      }
+    }
+  }
+}
