@@ -1931,4 +1931,558 @@ app.get('/assessment', (c) => {
   `)
 })
 
+// ==================== 판정 결과 페이지 ====================
+
+app.get('/result', async (c) => {
+  const companyId = c.req.query('company_id')
+  const year = c.req.query('year')
+  
+  if (!companyId || !year) {
+    return c.html(`
+      <!DOCTYPE html>
+      <html lang="ko">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>오류 | 조특법 판정 시스템</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+      </head>
+      <body class="bg-gray-50">
+          <div class="min-h-screen flex items-center justify-center p-4">
+              <div class="bg-white rounded-lg shadow-lg p-8 max-w-md text-center">
+                  <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+                  <h2 class="text-2xl font-bold text-gray-800 mb-4">잘못된 접근입니다</h2>
+                  <p class="text-gray-600 mb-6">판정 결과를 찾을 수 없습니다.</p>
+                  <a href="/" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                      홈으로 돌아가기
+                  </a>
+              </div>
+          </div>
+      </body>
+      </html>
+    `)
+  }
+
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>판정 결과 | 조특법 판정 시스템</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 헤더 -->
+        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            판정 결과
+                        </h1>
+                        <p class="text-indigo-100 mt-1">세액공제 자동 판정 결과를 확인하세요</p>
+                    </div>
+                    <a href="/" class="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 transition-colors">
+                        <i class="fas fa-home mr-2"></i>홈으로
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-8 max-w-6xl">
+            <!-- 로딩 표시 -->
+            <div id="loading" class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-6xl text-indigo-600 mb-4"></i>
+                <p class="text-xl text-gray-600">판정 결과를 불러오는 중...</p>
+            </div>
+
+            <!-- 결과 컨테이너 -->
+            <div id="result-container" class="hidden">
+                <!-- 요약 카드 -->
+                <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-2xl p-8 mb-8 text-white">
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="text-center">
+                            <i class="fas fa-coins text-5xl mb-3 opacity-90"></i>
+                            <p class="text-sm opacity-80 mb-1">총 공제 가능액</p>
+                            <h2 id="total-credit" class="text-4xl font-bold">0원</h2>
+                        </div>
+                        <div class="text-center">
+                            <i class="fas fa-check-double text-5xl mb-3 opacity-90"></i>
+                            <p class="text-sm opacity-80 mb-1">적용 가능 항목</p>
+                            <h2 id="eligible-count" class="text-4xl font-bold">0개</h2>
+                        </div>
+                        <div class="text-center">
+                            <i class="fas fa-list text-5xl mb-3 opacity-90"></i>
+                            <p class="text-sm opacity-80 mb-1">전체 검토 항목</p>
+                            <h2 id="total-count" class="text-4xl font-bold">19개</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 액션 버튼 -->
+                <div class="flex gap-4 mb-8">
+                    <button onclick="printResult()" class="flex-1 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                        <i class="fas fa-print mr-2"></i>결과 인쇄
+                    </button>
+                    <button onclick="downloadPDF()" class="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-file-pdf mr-2"></i>PDF 다운로드
+                    </button>
+                    <button onclick="location.href='/assessment'" class="flex-1 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-redo mr-2"></i>새로 판정
+                    </button>
+                </div>
+
+                <!-- 탭 메뉴 -->
+                <div class="bg-white rounded-lg shadow-md mb-8 overflow-hidden">
+                    <div class="flex border-b">
+                        <button onclick="showTab('eligible')" id="tab-eligible" class="tab-button flex-1 px-6 py-4 font-medium text-gray-700 hover:bg-gray-50 border-b-2 border-indigo-600 bg-indigo-50">
+                            <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                            적용 가능 (<span id="eligible-tab-count">0</span>)
+                        </button>
+                        <button onclick="showTab('not-eligible')" id="tab-not-eligible" class="tab-button flex-1 px-6 py-4 font-medium text-gray-700 hover:bg-gray-50">
+                            <i class="fas fa-times-circle text-red-600 mr-2"></i>
+                            적용 불가 (<span id="not-eligible-tab-count">0</span>)
+                        </button>
+                        <button onclick="showTab('chart')" id="tab-chart" class="tab-button flex-1 px-6 py-4 font-medium text-gray-700 hover:bg-gray-50">
+                            <i class="fas fa-chart-pie text-purple-600 mr-2"></i>
+                            통계 차트
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 적용 가능 항목 -->
+                <div id="content-eligible" class="tab-content">
+                    <div id="eligible-list" class="space-y-4">
+                        <!-- 동적으로 생성됩니다 -->
+                    </div>
+                </div>
+
+                <!-- 적용 불가 항목 -->
+                <div id="content-not-eligible" class="tab-content hidden">
+                    <div id="not-eligible-list" class="space-y-4">
+                        <!-- 동적으로 생성됩니다 -->
+                    </div>
+                </div>
+
+                <!-- 차트 -->
+                <div id="content-chart" class="tab-content hidden">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">카테고리별 공제액</h3>
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                        <div class="bg-white rounded-lg shadow-md p-6">
+                            <h3 class="text-lg font-bold text-gray-800 mb-4">적용 가능/불가 비율</h3>
+                            <canvas id="eligibleChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            const companyId = '${companyId}';
+            const year = '${year}';
+            let resultsData = [];
+            let sessionData = null;
+
+            // 결과 로드
+            async function loadResults() {
+                try {
+                    const response = await fetch(\`/api/results/\${companyId}/\${year}\`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        resultsData = result.data.results || [];
+                        sessionData = result.data.session || null;
+                        displayResults();
+                    } else {
+                        showError('판정 결과를 찾을 수 없습니다.');
+                    }
+                } catch (error) {
+                    console.error('결과 로드 실패:', error);
+                    showError('네트워크 오류가 발생했습니다.');
+                }
+            }
+
+            // 결과 표시
+            function displayResults() {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('result-container').classList.remove('hidden');
+
+                // 요약 정보
+                const eligibleResults = resultsData.filter(r => r.is_eligible === 1);
+                const notEligibleResults = resultsData.filter(r => r.is_eligible === 0);
+                
+                const totalCredit = sessionData?.total_credit_amount || 0;
+                
+                document.getElementById('total-credit').textContent = formatCurrency(totalCredit);
+                document.getElementById('eligible-count').textContent = eligibleResults.length + '개';
+                document.getElementById('total-count').textContent = resultsData.length + '개';
+                document.getElementById('eligible-tab-count').textContent = eligibleResults.length;
+                document.getElementById('not-eligible-tab-count').textContent = notEligibleResults.length;
+
+                // 리스트 표시
+                displayEligibleList(eligibleResults);
+                displayNotEligibleList(notEligibleResults);
+                
+                // 차트 생성
+                createCharts(resultsData);
+            }
+
+            // 적용 가능 리스트
+            function displayEligibleList(results) {
+                const container = document.getElementById('eligible-list');
+                
+                if (results.length === 0) {
+                    container.innerHTML = \`
+                        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-6 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-triangle text-3xl text-yellow-500 mr-4"></i>
+                                <div>
+                                    <h3 class="font-bold text-gray-800 mb-1">적용 가능한 세액공제가 없습니다</h3>
+                                    <p class="text-sm text-gray-600">
+                                        입력하신 정보로는 적용 가능한 세액공제를 찾을 수 없습니다.<br>
+                                        고용 증대, 투자, 연구개발 등의 실적이 있으시다면 다시 판정해보세요.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    \`;
+                    return;
+                }
+
+                // 카테고리별 그룹화
+                const grouped = {};
+                results.forEach(r => {
+                    const category = getCategoryFromId(r.credit_rule_id);
+                    if (!grouped[category]) grouped[category] = [];
+                    grouped[category].push(r);
+                });
+
+                let html = '';
+                
+                Object.entries(grouped).forEach(([category, items]) => {
+                    const icon = getCategoryIcon(category);
+                    const color = getCategoryColor(category);
+                    
+                    html += \`
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                                <i class="fas \${icon} text-\${color}-600 mr-2"></i>
+                                \${category} (\${items.length}개)
+                            </h3>
+                    \`;
+                    
+                    items.forEach(item => {
+                        html += \`
+                            <div class="bg-white rounded-lg shadow-md mb-3 overflow-hidden border-l-4 border-green-500">
+                                <div class="p-6">
+                                    <div class="flex items-start justify-between mb-4">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-2">
+                                                <span class="bg-green-100 text-green-800 text-xs font-bold px-3 py-1 rounded-full mr-2">
+                                                    적용 가능
+                                                </span>
+                                                <h4 class="text-lg font-bold text-gray-800">\${item.credit_rule_name}</h4>
+                                            </div>
+                                            <p class="text-sm text-gray-600">\${item.reasons || ''}</p>
+                                        </div>
+                                        <div class="text-right ml-4">
+                                            <p class="text-sm text-gray-500 mb-1">공제 가능액</p>
+                                            <p class="text-2xl font-bold text-green-600">\${formatCurrency(item.credit_amount)}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-gray-50 rounded-lg p-4">
+                                        <h5 class="font-semibold text-gray-700 mb-2 flex items-center">
+                                            <i class="fas fa-calculator text-indigo-600 mr-2"></i>
+                                            계산 내역
+                                        </h5>
+                                        <div class="text-sm text-gray-700 space-y-1">
+                                            \${formatDetails(item.details_json)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        \`;
+                    });
+                    
+                    html += '</div>';
+                });
+
+                container.innerHTML = html;
+            }
+
+            // 적용 불가 리스트
+            function displayNotEligibleList(results) {
+                const container = document.getElementById('not-eligible-list');
+                
+                if (results.length === 0) {
+                    container.innerHTML = \`
+                        <div class="bg-green-50 border-l-4 border-green-500 p-6 rounded-lg">
+                            <div class="flex items-center">
+                                <i class="fas fa-check-circle text-3xl text-green-500 mr-4"></i>
+                                <div>
+                                    <h3 class="font-bold text-gray-800 mb-1">모든 세액공제를 받으실 수 있습니다! 🎉</h3>
+                                    <p class="text-sm text-gray-600">검토한 모든 항목이 적용 가능합니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    \`;
+                    return;
+                }
+
+                // 카테고리별 그룹화
+                const grouped = {};
+                results.forEach(r => {
+                    const category = getCategoryFromId(r.credit_rule_id);
+                    if (!grouped[category]) grouped[category] = [];
+                    grouped[category].push(r);
+                });
+
+                let html = '';
+                
+                Object.entries(grouped).forEach(([category, items]) => {
+                    const icon = getCategoryIcon(category);
+                    const color = getCategoryColor(category);
+                    
+                    html += \`
+                        <div class="mb-6">
+                            <h3 class="text-xl font-bold text-gray-800 mb-3 flex items-center">
+                                <i class="fas \${icon} text-\${color}-600 mr-2"></i>
+                                \${category} (\${items.length}개)
+                            </h3>
+                    \`;
+                    
+                    items.forEach(item => {
+                        html += \`
+                            <div class="bg-white rounded-lg shadow-md mb-3 overflow-hidden border-l-4 border-gray-300">
+                                <div class="p-6">
+                                    <div class="flex items-start">
+                                        <div class="flex-1">
+                                            <div class="flex items-center mb-2">
+                                                <span class="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full mr-2">
+                                                    적용 불가
+                                                </span>
+                                                <h4 class="text-lg font-bold text-gray-800">\${item.credit_rule_name}</h4>
+                                            </div>
+                                            <div class="flex items-start">
+                                                <i class="fas fa-info-circle text-gray-400 mr-2 mt-1"></i>
+                                                <p class="text-sm text-gray-600">\${item.reasons || '요건을 충족하지 못했습니다'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        \`;
+                    });
+                    
+                    html += '</div>';
+                });
+
+                container.innerHTML = html;
+            }
+
+            // 차트 생성
+            function createCharts(results) {
+                // 카테고리별 공제액
+                const categoryData = {};
+                results.filter(r => r.is_eligible === 1).forEach(r => {
+                    const category = getCategoryFromId(r.credit_rule_id);
+                    categoryData[category] = (categoryData[category] || 0) + r.credit_amount;
+                });
+
+                const categoryChart = new Chart(document.getElementById('categoryChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(categoryData),
+                        datasets: [{
+                            label: '공제액 (원)',
+                            data: Object.values(categoryData),
+                            backgroundColor: [
+                                'rgba(99, 102, 241, 0.8)',
+                                'rgba(34, 197, 94, 0.8)',
+                                'rgba(59, 130, 246, 0.8)',
+                                'rgba(168, 85, 247, 0.8)',
+                                'rgba(107, 114, 128, 0.8)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toLocaleString() + '원';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                // 적용 가능/불가 비율
+                const eligible = results.filter(r => r.is_eligible === 1).length;
+                const notEligible = results.filter(r => r.is_eligible === 0).length;
+
+                const eligibleChart = new Chart(document.getElementById('eligibleChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['적용 가능', '적용 불가'],
+                        datasets: [{
+                            data: [eligible, notEligible],
+                            backgroundColor: [
+                                'rgba(34, 197, 94, 0.8)',
+                                'rgba(239, 68, 68, 0.8)'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // 탭 전환
+            function showTab(tab) {
+                // 모든 탭 버튼 비활성화
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('border-indigo-600', 'bg-indigo-50');
+                });
+                
+                // 모든 컨텐츠 숨김
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // 선택한 탭 활성화
+                document.getElementById(\`tab-\${tab}\`).classList.add('border-indigo-600', 'bg-indigo-50');
+                document.getElementById(\`content-\${tab}\`).classList.remove('hidden');
+            }
+
+            // 유틸리티 함수들
+            function formatCurrency(amount) {
+                return new Intl.NumberFormat('ko-KR').format(Math.round(amount)) + '원';
+            }
+
+            function formatDetails(jsonString) {
+                if (!jsonString) return '<p class="text-gray-500">상세 정보 없음</p>';
+                
+                try {
+                    const details = JSON.parse(jsonString);
+                    let html = '';
+                    
+                    Object.entries(details).forEach(([key, value]) => {
+                        const label = getDetailLabel(key);
+                        if (typeof value === 'number') {
+                            html += \`<p>• \${label}: \${value.toLocaleString()}</p>\`;
+                        } else if (typeof value === 'string') {
+                            html += \`<p>• \${label}: \${value}</p>\`;
+                        } else if (typeof value === 'boolean') {
+                            html += \`<p>• \${label}: \${value ? '예' : '아니오'}</p>\`;
+                        }
+                    });
+                    
+                    return html || '<p class="text-gray-500">상세 정보 없음</p>';
+                } catch (e) {
+                    return '<p class="text-gray-500">상세 정보를 표시할 수 없습니다</p>';
+                }
+            }
+
+            function getDetailLabel(key) {
+                const labels = {
+                    'company_type': '기업 규모',
+                    'is_capital_area': '수도권 여부',
+                    'employee_increase': '증가 인원',
+                    'per_person_credit': '1인당 공제액',
+                    'total_credit': '총 공제액',
+                    'youth_increase': '청년 증가',
+                    'disabled_count': '장애인 수',
+                    'total_investment': '총 투자액',
+                    'credit_rate': '공제율',
+                    'total_expense': '총 지출액'
+                };
+                return labels[key] || key;
+            }
+
+            function getCategoryFromId(id) {
+                if (id <= 5) return '고용';
+                if (id <= 10) return '중소기업';
+                if (id <= 14) return '투자';
+                if (id <= 17) return '연구개발';
+                return '기타';
+            }
+
+            function getCategoryIcon(category) {
+                const icons = {
+                    '고용': 'fa-users',
+                    '중소기업': 'fa-building',
+                    '투자': 'fa-industry',
+                    '연구개발': 'fa-flask',
+                    '기타': 'fa-ellipsis-h'
+                };
+                return icons[category] || 'fa-circle';
+            }
+
+            function getCategoryColor(category) {
+                const colors = {
+                    '고용': 'indigo',
+                    '중소기업': 'green',
+                    '투자': 'blue',
+                    '연구개발': 'purple',
+                    '기타': 'gray'
+                };
+                return colors[category] || 'gray';
+            }
+
+            function showError(message) {
+                document.getElementById('loading').innerHTML = \`
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-triangle text-6xl text-red-500 mb-4"></i>
+                        <p class="text-xl text-gray-600 mb-6">\${message}</p>
+                        <a href="/" class="inline-block px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                            홈으로 돌아가기
+                        </a>
+                    </div>
+                \`;
+            }
+
+            function printResult() {
+                window.print();
+            }
+
+            function downloadPDF() {
+                alert('PDF 다운로드 기능은 추후 지원 예정입니다.');
+            }
+
+            // 페이지 로드 시 결과 로드
+            loadResults();
+        </script>
+
+        <style>
+            @media print {
+                header, .no-print { display: none; }
+                body { background: white; }
+            }
+        </style>
+    </body>
+    </html>
+  `)
+})
+
 export default app
