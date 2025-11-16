@@ -9,8 +9,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "webapp-production",
-      "database_id": "local-only"
+      "database_name": "tax-system-production",
+      "database_id": "8e7df7dc-b878-4819-b6df-710534308481"
     }
   ]
 }
