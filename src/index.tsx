@@ -2544,4 +2544,616 @@ app.get('/result', async (c) => {
   `)
 })
 
+// ==================== 관리자 API ====================
+
+// 관리자 인증 미들웨어
+const ADMIN_PASSWORD = 'admin2024' // 환경변수로 변경 권장
+
+function checkAdminAuth(c: any) {
+  const authHeader = c.req.header('Authorization')
+  if (!authHeader || authHeader !== `Bearer ${ADMIN_PASSWORD}`) {
+    return false
+  }
+  return true
+}
+
+// 관리자 통계 API
+app.get('/api/admin/stats', async (c) => {
+  if (!checkAdminAuth(c)) {
+    return c.json({ success: false, error: '인증이 필요합니다' }, 401)
+  }
+
+  const { DB } = c.env
+  
+  try {
+    // 전체 회사 수
+    const companiesCount: any = await DB.prepare('SELECT COUNT(*) as count FROM companies').first()
+    
+    // 전체 판정 수
+    const assessmentsCount: any = await DB.prepare('SELECT COUNT(*) as count FROM assessment_sessions').first()
+    
+    // 총 공제 가능액
+    const totalCredit: any = await DB.prepare('SELECT SUM(total_credit_amount) as total FROM assessment_sessions').first()
+    
+    // 평균 공제액
+    const avgCredit: any = await DB.prepare('SELECT AVG(total_credit_amount) as avg FROM assessment_sessions').first()
+    
+    return c.json({
+      success: true,
+      data: {
+        totalCompanies: companiesCount.count,
+        totalAssessments: assessmentsCount.count,
+        totalCreditAmount: totalCredit.total || 0,
+        avgCreditAmount: avgCredit.avg || 0
+      }
+    })
+  } catch (error) {
+    console.error('통계 조회 실패:', error)
+    return c.json({ success: false, error: '통계 조회에 실패했습니다' }, 500)
+  }
+})
+
+// 전체 회사 목록 조회
+app.get('/api/admin/companies', async (c) => {
+  if (!checkAdminAuth(c)) {
+    return c.json({ success: false, error: '인증이 필요합니다' }, 401)
+  }
+
+  const { DB } = c.env
+  
+  try {
+    const companies: any = await DB.prepare(`
+      SELECT 
+        c.*,
+        COUNT(s.id) as assessment_count,
+        MAX(s.created_at) as last_assessment_date
+      FROM companies c
+      LEFT JOIN assessment_sessions s ON c.id = s.company_id
+      GROUP BY c.id
+      ORDER BY c.created_at DESC
+    `).all()
+    
+    return c.json({
+      success: true,
+      data: companies.results
+    })
+  } catch (error) {
+    console.error('회사 목록 조회 실패:', error)
+    return c.json({ success: false, error: '회사 목록 조회에 실패했습니다' }, 500)
+  }
+})
+
+// 특정 회사의 판정 내역
+app.get('/api/admin/companies/:id/assessments', async (c) => {
+  if (!checkAdminAuth(c)) {
+    return c.json({ success: false, error: '인증이 필요합니다' }, 401)
+  }
+
+  const { DB } = c.env
+  const companyId = c.req.param('id')
+  
+  try {
+    const assessments: any = await DB.prepare(`
+      SELECT * FROM assessment_sessions
+      WHERE company_id = ?
+      ORDER BY created_at DESC
+    `).bind(companyId).all()
+    
+    return c.json({
+      success: true,
+      data: assessments.results
+    })
+  } catch (error) {
+    console.error('판정 내역 조회 실패:', error)
+    return c.json({ success: false, error: '판정 내역 조회에 실패했습니다' }, 500)
+  }
+})
+
+// 최근 판정 내역
+app.get('/api/admin/recent-assessments', async (c) => {
+  if (!checkAdminAuth(c)) {
+    return c.json({ success: false, error: '인증이 필요합니다' }, 401)
+  }
+
+  const { DB } = c.env
+  const limit = c.req.query('limit') || '10'
+  
+  try {
+    const assessments: any = await DB.prepare(`
+      SELECT 
+        s.*,
+        c.company_name,
+        c.business_number
+      FROM assessment_sessions s
+      JOIN companies c ON s.company_id = c.id
+      ORDER BY s.created_at DESC
+      LIMIT ?
+    `).bind(parseInt(limit)).all()
+    
+    return c.json({
+      success: true,
+      data: assessments.results
+    })
+  } catch (error) {
+    console.error('최근 판정 조회 실패:', error)
+    return c.json({ success: false, error: '최근 판정 조회에 실패했습니다' }, 500)
+  }
+})
+
+// ==================== 관리자 페이지 ====================
+
+// 관리자 로그인 페이지
+app.get('/admin', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>관리자 로그인 | 조특법 판정 시스템</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gradient-to-br from-gray-900 to-gray-800 min-h-screen flex items-center justify-center">
+        <div class="w-full max-w-md px-4">
+            <div class="bg-white rounded-2xl shadow-2xl p-8">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shield-alt text-3xl text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-800 mb-2">관리자 로그인</h1>
+                    <p class="text-gray-600 text-sm">조특법 판정 시스템 관리</p>
+                </div>
+
+                <form id="loginForm" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-lock mr-2 text-indigo-600"></i>
+                            관리자 비밀번호
+                        </label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                            placeholder="비밀번호를 입력하세요"
+                            required
+                        >
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg"
+                    >
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        로그인
+                    </button>
+                </form>
+
+                <div id="error" class="hidden mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    <i class="fas fa-exclamation-circle mr-2"></i>
+                    <span id="errorMessage"></span>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+                    <a href="/" class="text-sm text-gray-600 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        홈으로 돌아가기
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const password = document.getElementById('password').value;
+                const errorDiv = document.getElementById('error');
+                const errorMessage = document.getElementById('errorMessage');
+
+                try {
+                    // 통계 API 호출로 인증 테스트
+                    const response = await fetch('/api/admin/stats', {
+                        headers: {
+                            'Authorization': \`Bearer \${password}\`
+                        }
+                    });
+
+                    if (response.ok) {
+                        // 비밀번호를 세션 스토리지에 저장 (임시)
+                        sessionStorage.setItem('adminToken', password);
+                        window.location.href = '/admin/dashboard';
+                    } else {
+                        errorDiv.classList.remove('hidden');
+                        errorMessage.textContent = '비밀번호가 올바르지 않습니다.';
+                    }
+                } catch (error) {
+                    errorDiv.classList.remove('hidden');
+                    errorMessage.textContent = '로그인 중 오류가 발생했습니다.';
+                }
+            });
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// 관리자 대시보드
+app.get('/admin/dashboard', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>관리자 대시보드 | 조특법 판정 시스템</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+    <body class="bg-gray-50">
+        <!-- 헤더 -->
+        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <i class="fas fa-shield-alt text-2xl mr-3"></i>
+                        <h1 class="text-xl sm:text-2xl font-bold">관리자 대시보드</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/admin/companies" class="hidden sm:block px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
+                            <i class="fas fa-building mr-2"></i>회사 관리
+                        </a>
+                        <button onclick="logout()" class="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600 transition-colors">
+                            <i class="fas fa-sign-out-alt mr-2"></i>로그아웃
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- 로딩 -->
+            <div id="loading" class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-6xl text-indigo-600 mb-4"></i>
+                <p class="text-xl text-gray-600">데이터를 불러오는 중...</p>
+            </div>
+
+            <!-- 대시보드 컨텐츠 -->
+            <div id="dashboard" class="hidden">
+                <!-- 통계 카드 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- 전체 회사 수 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-indigo-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm font-medium mb-1">전체 회사</p>
+                                <h3 id="totalCompanies" class="text-3xl font-bold text-gray-800">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-building text-2xl text-indigo-600"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 전체 판정 수 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm font-medium mb-1">전체 판정</p>
+                                <h3 id="totalAssessments" class="text-3xl font-bold text-gray-800">0</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check-circle text-2xl text-green-600"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 총 공제액 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm font-medium mb-1">총 공제액</p>
+                                <h3 id="totalCredit" class="text-2xl font-bold text-gray-800">0원</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-coins text-2xl text-blue-600"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 평균 공제액 -->
+                    <div class="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-600 text-sm font-medium mb-1">평균 공제액</p>
+                                <h3 id="avgCredit" class="text-2xl font-bold text-gray-800">0원</h3>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-chart-line text-2xl text-purple-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 최근 판정 내역 -->
+                <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-800">
+                            <i class="fas fa-history text-indigo-600 mr-2"></i>
+                            최근 판정 내역
+                        </h2>
+                        <a href="/admin/companies" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                            <i class="fas fa-list mr-2"></i>전체 보기
+                        </a>
+                    </div>
+
+                    <div id="recentAssessments" class="overflow-x-auto">
+                        <!-- 동적으로 생성 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            const token = sessionStorage.getItem('adminToken');
+            
+            if (!token) {
+                window.location.href = '/admin';
+            }
+
+            async function loadDashboard() {
+                try {
+                    // 통계 로드
+                    const statsResponse = await fetch('/api/admin/stats', {
+                        headers: { 'Authorization': \`Bearer \${token}\` }
+                    });
+                    
+                    if (!statsResponse.ok) {
+                        throw new Error('인증 실패');
+                    }
+                    
+                    const statsData = await statsResponse.json();
+                    
+                    document.getElementById('totalCompanies').textContent = statsData.data.totalCompanies;
+                    document.getElementById('totalAssessments').textContent = statsData.data.totalAssessments;
+                    document.getElementById('totalCredit').textContent = statsData.data.totalCreditAmount.toLocaleString() + '원';
+                    document.getElementById('avgCredit').textContent = Math.round(statsData.data.avgCreditAmount).toLocaleString() + '원';
+
+                    // 최근 판정 로드
+                    const assessmentsResponse = await fetch('/api/admin/recent-assessments?limit=10', {
+                        headers: { 'Authorization': \`Bearer \${token}\` }
+                    });
+                    
+                    const assessmentsData = await assessmentsResponse.json();
+                    displayRecentAssessments(assessmentsData.data);
+
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('dashboard').classList.remove('hidden');
+                    
+                } catch (error) {
+                    console.error('대시보드 로드 실패:', error);
+                    alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/admin';
+                }
+            }
+
+            function displayRecentAssessments(assessments) {
+                const container = document.getElementById('recentAssessments');
+                
+                if (assessments.length === 0) {
+                    container.innerHTML = \`
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-inbox text-4xl mb-3"></i>
+                            <p>아직 판정 내역이 없습니다.</p>
+                        </div>
+                    \`;
+                    return;
+                }
+
+                let html = \`
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">회사명</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider hidden sm:table-cell">사업자번호</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">연도</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">공제액</th>
+                                <th class="px-4 py-3 text-center text-xs font-medium text-gray-600 uppercase tracking-wider hidden md:table-cell">판정일</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                \`;
+
+                assessments.forEach(item => {
+                    const date = new Date(item.created_at).toLocaleDateString('ko-KR');
+                    html += \`
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-4 py-3 text-sm font-medium text-gray-800">\${item.company_name}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">\${item.business_number}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">\${item.year}</td>
+                            <td class="px-4 py-3 text-sm font-semibold text-right text-green-600">\${item.total_credit_amount.toLocaleString()}원</td>
+                            <td class="px-4 py-3 text-sm text-gray-600 text-center hidden md:table-cell">\${date}</td>
+                        </tr>
+                    \`;
+                });
+
+                html += \`
+                        </tbody>
+                    </table>
+                \`;
+
+                container.innerHTML = html;
+            }
+
+            function logout() {
+                sessionStorage.removeItem('adminToken');
+                window.location.href = '/admin';
+            }
+
+            loadDashboard();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// 회사 목록 관리 페이지
+app.get('/admin/companies', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>회사 관리 | 관리자</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50">
+        <!-- 헤더 -->
+        <header class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <a href="/admin/dashboard" class="hover:text-indigo-200 transition-colors">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <h1 class="text-xl sm:text-2xl font-bold">회사 관리</h1>
+                    </div>
+                    <button onclick="logout()" class="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600 transition-colors">
+                        <i class="fas fa-sign-out-alt mr-2"></i>로그아웃
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- 로딩 -->
+            <div id="loading" class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-6xl text-indigo-600 mb-4"></i>
+                <p class="text-xl text-gray-600">회사 목록을 불러오는 중...</p>
+            </div>
+
+            <!-- 회사 목록 -->
+            <div id="companiesList" class="hidden">
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+                        <h2 class="text-2xl font-bold">
+                            <i class="fas fa-building mr-2"></i>
+                            등록된 회사 목록
+                        </h2>
+                        <p class="text-indigo-100 mt-1">총 <span id="totalCount">0</span>개의 회사가 등록되어 있습니다.</p>
+                    </div>
+
+                    <div id="companiesTable" class="overflow-x-auto">
+                        <!-- 동적으로 생성 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            const token = sessionStorage.getItem('adminToken');
+            
+            if (!token) {
+                window.location.href = '/admin';
+            }
+
+            async function loadCompanies() {
+                try {
+                    const response = await fetch('/api/admin/companies', {
+                        headers: { 'Authorization': \`Bearer \${token}\` }
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error('인증 실패');
+                    }
+                    
+                    const data = await response.json();
+                    displayCompanies(data.data);
+
+                    document.getElementById('loading').classList.add('hidden');
+                    document.getElementById('companiesList').classList.remove('hidden');
+                    
+                } catch (error) {
+                    console.error('회사 목록 로드 실패:', error);
+                    alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                    window.location.href = '/admin';
+                }
+            }
+
+            function displayCompanies(companies) {
+                const container = document.getElementById('companiesTable');
+                document.getElementById('totalCount').textContent = companies.length;
+                
+                if (companies.length === 0) {
+                    container.innerHTML = \`
+                        <div class="text-center py-12 text-gray-500">
+                            <i class="fas fa-inbox text-6xl mb-4"></i>
+                            <p class="text-xl">등록된 회사가 없습니다.</p>
+                        </div>
+                    \`;
+                    return;
+                }
+
+                let html = \`
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">회사명</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider hidden sm:table-cell">사업자번호</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider hidden md:table-cell">대표자</th>
+                                <th class="px-6 py-4 text-left text-xs font-medium text-gray-600 uppercase tracking-wider hidden lg:table-cell">업종</th>
+                                <th class="px-6 py-4 text-center text-xs font-medium text-gray-600 uppercase tracking-wider">판정 횟수</th>
+                                <th class="px-6 py-4 text-center text-xs font-medium text-gray-600 uppercase tracking-wider hidden md:table-cell">최근 판정</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                \`;
+
+                companies.forEach(company => {
+                    const lastDate = company.last_assessment_date 
+                        ? new Date(company.last_assessment_date).toLocaleDateString('ko-KR')
+                        : '-';
+                    
+                    html += \`
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="font-medium text-gray-800">\${company.company_name}</div>
+                                <div class="text-sm text-gray-500 sm:hidden">\${company.business_number}</div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600 hidden sm:table-cell">\${company.business_number}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600 hidden md:table-cell">\${company.ceo_name}</td>
+                            <td class="px-6 py-4 text-sm text-gray-600 hidden lg:table-cell">\${company.industry}</td>
+                            <td class="px-6 py-4 text-center">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-indigo-100 text-indigo-800">
+                                    \${company.assessment_count}회
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600 text-center hidden md:table-cell">\${lastDate}</td>
+                        </tr>
+                    \`;
+                });
+
+                html += \`
+                        </tbody>
+                    </table>
+                \`;
+
+                container.innerHTML = html;
+            }
+
+            function logout() {
+                sessionStorage.removeItem('adminToken');
+                window.location.href = '/admin';
+            }
+
+            loadCompanies();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
 export default app
