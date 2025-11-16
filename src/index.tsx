@@ -1111,11 +1111,87 @@ app.get('/', (c) => {
                 </div>
             </main>
 
+            <!-- 오시는 길 & 연락처 -->
+            <div class="mt-12 bg-white rounded-2xl shadow-xl p-6 sm:p-8 lg:p-10 border border-gray-100">
+                <h2 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-8 text-center">
+                    <i class="fas fa-map-marker-alt text-indigo-600 mr-2"></i>
+                    오시는 길 & 연락처
+                </h2>
+                
+                <div class="grid md:grid-cols-3 gap-6 sm:gap-8">
+                    <!-- 연락처 -->
+                    <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6">
+                        <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <i class="fas fa-phone text-2xl text-white"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-3 text-center">연락처</h3>
+                        <div class="space-y-2 text-sm text-gray-700">
+                            <p class="flex items-center justify-center">
+                                <i class="fas fa-phone-alt text-indigo-600 mr-2 w-4"></i>
+                                <span class="font-medium">02-525-8870</span>
+                            </p>
+                            <p class="flex items-center justify-center">
+                                <i class="fas fa-envelope text-indigo-600 mr-2 w-4"></i>
+                                <a href="mailto:lsw2696@gmail.com" class="hover:text-indigo-600 transition-colors">
+                                    lsw2696@gmail.com
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 주소 -->
+                    <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6">
+                        <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <i class="fas fa-map-marked-alt text-2xl text-white"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-3 text-center">주소</h3>
+                        <div class="space-y-2 text-sm text-gray-700 text-center">
+                            <p class="font-medium">서울특별시 서초구</p>
+                            <p>서초동 1625-12</p>
+                            <p class="text-green-700 font-semibold">명성빌딩 2층</p>
+                        </div>
+                    </div>
+
+                    <!-- 운영시간 -->
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6">
+                        <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mb-4 mx-auto">
+                            <i class="fas fa-clock text-2xl text-white"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-3 text-center">운영시간</h3>
+                        <div class="space-y-2 text-sm text-gray-700 text-center">
+                            <p class="flex items-center justify-center">
+                                <i class="fas fa-calendar-day text-blue-600 mr-2 w-4"></i>
+                                <span><strong>평일:</strong> 09:00 - 18:00</span>
+                            </p>
+                            <p class="flex items-center justify-center">
+                                <i class="fas fa-calendar-times text-blue-600 mr-2 w-4"></i>
+                                <span><strong>토요일/공휴일:</strong> 휴무</span>
+                            </p>
+                            <p class="text-xs text-gray-500 mt-2">* 긴급 상담은 사전 예약 가능</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 상담 신청 버튼 -->
+                <div class="mt-8 text-center">
+                    <a href="tel:02-525-8870" class="inline-flex items-center px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full font-bold text-lg hover:from-indigo-700 hover:to-purple-700 transition-all transform hover:scale-105 shadow-lg">
+                        <i class="fas fa-phone-volume mr-3"></i>
+                        지금 바로 상담하세요
+                    </a>
+                </div>
+            </div>
+
             <!-- 푸터 -->
             <footer class="bg-gray-800 text-gray-300 mt-12 py-6">
                 <div class="container mx-auto px-4 text-center">
-                    <p class="text-sm text-gray-400">
+                    <p class="text-sm text-gray-400 mb-2">
                         본 시스템은 참고용이며, 실제 세액 신고 시 전문가와 상담하시기 바랍니다.
+                    </p>
+                    <p class="text-xs text-gray-500">
+                        © 중소기업컨설팅119 | 
+                        <a href="https://bxaraxfc.gensparkspace.com" target="_blank" class="hover:text-indigo-400 transition-colors">
+                            정책자금 컨설팅 바로가기 →
+                        </a>
                     </p>
                 </div>
             </footer>
