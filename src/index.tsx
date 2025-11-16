@@ -1060,4 +1060,875 @@ app.get('/', (c) => {
   `)
 })
 
+// ==================== 규칙 조회 페이지 ====================
+
+app.get('/rules', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>세액공제 규칙 조회 | 조특법 판정 시스템</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50">
+        <!-- 헤더 -->
+        <header class="bg-indigo-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <a href="/" class="flex items-center">
+                        <i class="fas fa-arrow-left mr-3"></i>
+                        <h1 class="text-2xl font-bold">세액공제 규칙 조회</h1>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-8">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">
+                    <i class="fas fa-info-circle text-indigo-600 mr-2"></i>
+                    조세특례제한법 기반 세액공제 규칙 (20개)
+                </h2>
+                <p class="text-gray-600">각 규칙을 클릭하면 상세 내용을 확인할 수 있습니다.</p>
+            </div>
+
+            <!-- 규칙 목록 로딩 -->
+            <div id="rules-container" class="space-y-4">
+                <div class="text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
+                    <p class="text-gray-600">규칙을 불러오는 중...</p>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            // 규칙 데이터 로드
+            async function loadRules() {
+                try {
+                    const response = await fetch('/api/rules');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        displayRules(result.data);
+                    } else {
+                        showError('규칙을 불러올 수 없습니다.');
+                    }
+                } catch (error) {
+                    console.error('API 호출 실패:', error);
+                    showError('네트워크 오류가 발생했습니다.');
+                }
+            }
+
+            // 규칙 표시
+            function displayRules(rules) {
+                const container = document.getElementById('rules-container');
+                const categories = {
+                    '고용': [],
+                    '중소기업': [],
+                    '투자': [],
+                    '연구개발': [],
+                    '기타': []
+                };
+
+                // 카테고리별 분류
+                Object.entries(rules).forEach(([key, rule]) => {
+                    if (categories[rule.category]) {
+                        categories[rule.category].push({ key, ...rule });
+                    }
+                });
+
+                // HTML 생성
+                let html = '';
+                const categoryIcons = {
+                    '고용': 'fa-users',
+                    '중소기업': 'fa-building',
+                    '투자': 'fa-industry',
+                    '연구개발': 'fa-flask',
+                    '기타': 'fa-ellipsis-h'
+                };
+                const categoryColors = {
+                    '고용': 'indigo',
+                    '중소기업': 'green',
+                    '투자': 'blue',
+                    '연구개발': 'purple',
+                    '기타': 'gray'
+                };
+
+                Object.entries(categories).forEach(([category, items]) => {
+                    if (items.length === 0) return;
+                    
+                    const icon = categoryIcons[category];
+                    const color = categoryColors[category];
+                    
+                    html += \`
+                        <div class="mb-8">
+                            <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                                <i class="fas \${icon} text-\${color}-600 mr-2"></i>
+                                \${category} 관련 (\${items.length}개)
+                            </h3>
+                            <div class="space-y-3">
+                    \`;
+
+                    items.forEach(rule => {
+                        html += \`
+                            <div class="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200 overflow-hidden">
+                                <button onclick="toggleRule('\${rule.key}')" class="w-full text-left p-4 focus:outline-none">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center">
+                                                <span class="bg-\${color}-100 text-\${color}-800 text-xs font-medium px-2.5 py-0.5 rounded mr-2">
+                                                    \${rule.article}
+                                                </span>
+                                                <h4 class="font-bold text-gray-800">\${rule.name}</h4>
+                                            </div>
+                                            <p class="text-sm text-gray-600 mt-2">\${rule.description}</p>
+                                        </div>
+                                        <i id="icon-\${rule.key}" class="fas fa-chevron-down text-gray-400 ml-4 transition-transform"></i>
+                                    </div>
+                                </button>
+                                <div id="detail-\${rule.key}" class="hidden border-t border-gray-200 bg-gray-50 p-4">
+                                    <div class="space-y-3">
+                                        <!-- 적용 요건 -->
+                                        <div>
+                                            <h5 class="font-semibold text-gray-700 mb-2">
+                                                <i class="fas fa-check-circle text-green-600 mr-1"></i>
+                                                적용 요건
+                                            </h5>
+                                            <div class="bg-white rounded p-3 text-sm">
+                                                \${formatRequirements(rule.requirements)}
+                                            </div>
+                                        </div>
+                                        <!-- 공제액 -->
+                                        <div>
+                                            <h5 class="font-semibold text-gray-700 mb-2">
+                                                <i class="fas fa-money-bill-wave text-indigo-600 mr-1"></i>
+                                                공제 금액/율
+                                            </h5>
+                                            <div class="bg-white rounded p-3 text-sm">
+                                                \${formatCreditAmount(rule.credit_amount)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        \`;
+                    });
+
+                    html += \`
+                            </div>
+                        </div>
+                    \`;
+                });
+
+                container.innerHTML = html;
+            }
+
+            // 규칙 상세 토글
+            function toggleRule(key) {
+                const detail = document.getElementById(\`detail-\${key}\`);
+                const icon = document.getElementById(\`icon-\${key}\`);
+                
+                detail.classList.toggle('hidden');
+                icon.classList.toggle('rotate-180');
+            }
+
+            // 요건 포맷팅
+            function formatRequirements(requirements) {
+                if (!requirements) return '<p class="text-gray-500">요건 정보 없음</p>';
+                
+                let html = '<ul class="space-y-1">';
+                Object.entries(requirements).forEach(([key, req]) => {
+                    html += \`<li class="flex items-start">\`;
+                    html += \`<i class="fas fa-dot-circle text-indigo-500 mr-2 mt-1 text-xs"></i>\`;
+                    html += \`<span><strong>\${req.description || key}:</strong> \`;
+                    
+                    if (req.min !== undefined) html += \`최소 \${req.min.toLocaleString()}\`;
+                    if (req.max !== undefined) html += \` ~ 최대 \${req.max.toLocaleString()}\`;
+                    if (req.value !== undefined) html += \`\${req.value}\`;
+                    if (req.values !== undefined) html += \`\${req.values.join(', ')}\`;
+                    if (req.required !== undefined) html += req.required ? '필수' : '선택';
+                    
+                    html += \`</span></li>\`;
+                });
+                html += '</ul>';
+                return html;
+            }
+
+            // 공제액 포맷팅
+            function formatCreditAmount(creditAmount) {
+                if (!creditAmount) return '<p class="text-gray-500">공제 정보 없음</p>';
+                
+                let html = '<div class="space-y-2">';
+                
+                if (typeof creditAmount === 'object') {
+                    Object.entries(creditAmount).forEach(([key, value]) => {
+                        if (typeof value === 'object' && value.description) {
+                            html += \`
+                                <div class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                                    <span><strong>\${key}:</strong> \${value.description}</span>
+                                </div>
+                            \`;
+                        } else if (value.description) {
+                            html += \`
+                                <div class="flex items-start">
+                                    <i class="fas fa-check text-green-500 mr-2 mt-1"></i>
+                                    <span>\${value.description}</span>
+                                </div>
+                            \`;
+                        }
+                    });
+                }
+                
+                html += '</div>';
+                return html;
+            }
+
+            // 에러 표시
+            function showError(message) {
+                const container = document.getElementById('rules-container');
+                container.innerHTML = \`
+                    <div class="text-center py-12">
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                        <p class="text-gray-600">\${message}</p>
+                        <button onclick="loadRules()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                            다시 시도
+                        </button>
+                    </div>
+                \`;
+            }
+
+            // 페이지 로드 시 실행
+            loadRules();
+        </script>
+    </body>
+    </html>
+  `)
+})
+
+// ==================== 판정 입력 페이지 ====================
+
+app.get('/assessment', (c) => {
+  return c.html(`
+    <!DOCTYPE html>
+    <html lang="ko">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>새로운 판정 | 조특법 판정 시스템</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-gray-50">
+        <!-- 헤더 -->
+        <header class="bg-indigo-600 text-white shadow-lg">
+            <div class="container mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <a href="/" class="flex items-center">
+                        <i class="fas fa-arrow-left mr-3"></i>
+                        <h1 class="text-2xl font-bold">세액공제 판정</h1>
+                    </a>
+                    <div class="text-sm">
+                        <span id="step-indicator">단계 1/5</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container mx-auto px-4 py-8 max-w-4xl">
+            <!-- 진행 표시 -->
+            <div class="mb-8">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-700">진행률</span>
+                    <span class="text-sm font-medium text-indigo-600" id="progress-percent">0%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="progress-bar" class="bg-indigo-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- 단계별 폼 -->
+            <div id="form-container" class="bg-white rounded-lg shadow-lg p-8">
+                <!-- 단계 1: 사업자 정보 -->
+                <div id="step-1" class="step-content">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-building text-indigo-600 mr-2"></i>
+                        1단계: 사업자 기본 정보
+                    </h2>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                사업자등록번호 <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="business_number" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                   placeholder="123-45-67890" required>
+                            <p class="text-xs text-gray-500 mt-1">숫자와 하이픈(-)으로 입력해주세요</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                회사명 <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="company_name" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                   placeholder="(주)테스트기업" required>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                대표자명 <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="ceo_name" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                   placeholder="홍길동" required>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                기업 규모 <span class="text-red-500">*</span>
+                            </label>
+                            <select id="company_type" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                                <option value="">선택해주세요</option>
+                                <option value="중소기업">중소기업</option>
+                                <option value="중견기업">중견기업</option>
+                                <option value="대기업">대기업</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                업종 <span class="text-red-500">*</span>
+                            </label>
+                            <select id="industry" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" required>
+                                <option value="">선택해주세요</option>
+                                <option value="제조업">제조업</option>
+                                <option value="건설업">건설업</option>
+                                <option value="도매업">도매업</option>
+                                <option value="소매업">소매업</option>
+                                <option value="서비스업">서비스업</option>
+                                <option value="IT업">IT업</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                소재지 <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="location" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                   placeholder="서울특별시 강남구" required>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                수도권 여부 <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-4">
+                                <label class="flex items-center">
+                                    <input type="radio" name="is_capital_area" value="1" class="mr-2" checked>
+                                    <span>수도권 (서울/경기/인천)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="is_capital_area" value="0" class="mr-2">
+                                    <span>지방</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                과세연도 <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" id="year" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                   value="2024" min="2020" max="2030" required>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-end">
+                        <button onclick="nextStep()" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                            다음 단계 <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 단계 2: 고용 정보 -->
+                <div id="step-2" class="step-content hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-users text-indigo-600 mr-2"></i>
+                        2단계: 고용 관련 정보
+                    </h2>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                        <p class="text-sm text-blue-700">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            고용 관련 세액공제를 받으실 경우에만 입력해주세요. 해당사항 없으면 0 또는 비워두셔도 됩니다.
+                        </p>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                총 상시근로자 수 (명)
+                            </label>
+                            <input type="number" id="total_employees" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="0" min="0">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                전년 대비 증가 인원 (명)
+                            </label>
+                            <input type="number" id="employee_increase" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="0" min="0">
+                            <p class="text-xs text-gray-500 mt-1">예: 작년 10명 → 올해 15명 = 5명 입력</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                청년(15-34세) 정규직 증가 인원 (명)
+                            </label>
+                            <input type="number" id="youth_employees" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="0" min="0">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                장애인 근로자 수 (명)
+                            </label>
+                            <input type="number" id="disabled_employees" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="0" min="0">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                경력단절여성 재고용 인원 (명)
+                            </label>
+                            <input type="number" id="career_break_women" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="0" min="0">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                연간 총 급여액 (원)
+                            </label>
+                            <input type="number" id="total_salary" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="0" min="0" step="1000000">
+                            <p class="text-xs text-gray-500 mt-1">예: 5억원 = 500000000</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                사회보험료 사업주 납부액 (원)
+                            </label>
+                            <input type="number" id="insurance_paid" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                   placeholder="0" min="0">
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-between">
+                        <button onclick="prevStep()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium">
+                            <i class="fas fa-arrow-left mr-2"></i> 이전
+                        </button>
+                        <button onclick="nextStep()" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                            다음 단계 <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 단계 3: 투자 정보 -->
+                <div id="step-3" class="step-content hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-industry text-indigo-600 mr-2"></i>
+                        3단계: 투자 및 시설 정보
+                    </h2>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                        <p class="text-sm text-blue-700">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            투자한 시설이 있는 경우에만 입력해주세요. 없으면 다음 단계로 넘어가셔도 됩니다.
+                        </p>
+                    </div>
+
+                    <div id="investment-list" class="space-y-4 mb-4">
+                        <!-- 투자 항목이 동적으로 추가됩니다 -->
+                    </div>
+
+                    <button onclick="addInvestment()" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-indigo-500 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-plus mr-2"></i> 투자 항목 추가
+                    </button>
+
+                    <div class="mt-8 flex justify-between">
+                        <button onclick="prevStep()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium">
+                            <i class="fas fa-arrow-left mr-2"></i> 이전
+                        </button>
+                        <button onclick="nextStep()" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                            다음 단계 <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 단계 4: 연구개발 정보 -->
+                <div id="step-4" class="step-content hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-flask text-indigo-600 mr-2"></i>
+                        4단계: 연구개발 정보
+                    </h2>
+                    
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                        <p class="text-sm text-blue-700">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            연구개발비 지출이 있는 경우에만 입력해주세요.
+                        </p>
+                    </div>
+
+                    <div id="rnd-list" class="space-y-4 mb-4">
+                        <!-- 연구개발 항목이 동적으로 추가됩니다 -->
+                    </div>
+
+                    <button onclick="addRnd()" class="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-indigo-500 hover:text-indigo-600 transition-colors">
+                        <i class="fas fa-plus mr-2"></i> 연구개발 항목 추가
+                    </button>
+
+                    <div class="mt-8 flex justify-between">
+                        <button onclick="prevStep()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium">
+                            <i class="fas fa-arrow-left mr-2"></i> 이전
+                        </button>
+                        <button onclick="nextStep()" class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">
+                            다음 단계 <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 단계 5: 기타 정보 및 확인 -->
+                <div id="step-5" class="step-content hidden">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">
+                        <i class="fas fa-clipboard-check text-indigo-600 mr-2"></i>
+                        5단계: 기타 정보 및 최종 확인
+                    </h2>
+                    
+                    <div class="space-y-6">
+                        <!-- 창업 정보 -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h3 class="font-semibold text-gray-800 mb-4">창업 관련 정보 (선택)</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">창업일</label>
+                                    <input type="date" id="startup_date" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="is_youth_startup" class="mr-2">
+                                        <span class="text-sm">청년창업 (대표자 34세 이하)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 기부금 정보 -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h3 class="font-semibold text-gray-800 mb-4">기부금 정보 (선택)</h3>
+                            <div class="space-y-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">기부금액 (원)</label>
+                                    <input type="number" id="donation_amount" 
+                                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                           placeholder="0" min="0">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">기부금 유형</label>
+                                    <select id="donation_type" 
+                                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                        <option value="지정기부금">지정기부금</option>
+                                        <option value="법정기부금">법정기부금</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 사업소득 정보 -->
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <h3 class="font-semibold text-gray-800 mb-4">사업소득 정보</h3>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">사업소득 (원)</label>
+                                <input type="number" id="business_income" 
+                                       class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                                       placeholder="0" min="0" step="1000000">
+                                <p class="text-xs text-gray-500 mt-1">예: 3억원 = 300000000</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 flex justify-between">
+                        <button onclick="prevStep()" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium">
+                            <i class="fas fa-arrow-left mr-2"></i> 이전
+                        </button>
+                        <button onclick="submitAssessment()" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">
+                            <i class="fas fa-check mr-2"></i> 판정 실행
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <script>
+            let currentStep = 1;
+            const totalSteps = 5;
+            let companyId = null;
+
+            // 단계 전환
+            function showStep(step) {
+                // 모든 단계 숨김
+                for (let i = 1; i <= totalSteps; i++) {
+                    document.getElementById(\`step-\${i}\`).classList.add('hidden');
+                }
+                
+                // 현재 단계 표시
+                document.getElementById(\`step-\${step}\`).classList.remove('hidden');
+                
+                // 진행 표시 업데이트
+                const progress = (step / totalSteps) * 100;
+                document.getElementById('progress-bar').style.width = progress + '%';
+                document.getElementById('progress-percent').textContent = Math.round(progress) + '%';
+                document.getElementById('step-indicator').textContent = \`단계 \${step}/\${totalSteps}\`;
+                
+                currentStep = step;
+                window.scrollTo(0, 0);
+            }
+
+            async function nextStep() {
+                if (currentStep === 1) {
+                    // 1단계: 사업자 등록
+                    if (!await registerCompany()) return;
+                }
+                
+                if (currentStep < totalSteps) {
+                    showStep(currentStep + 1);
+                }
+            }
+
+            function prevStep() {
+                if (currentStep > 1) {
+                    showStep(currentStep - 1);
+                }
+            }
+
+            // 사업자 등록
+            async function registerCompany() {
+                const businessNumber = document.getElementById('business_number').value;
+                const companyName = document.getElementById('company_name').value;
+                const ceoName = document.getElementById('ceo_name').value;
+                const companyType = document.getElementById('company_type').value;
+                const industry = document.getElementById('industry').value;
+                const location = document.getElementById('location').value;
+                const isCapitalArea = document.querySelector('input[name="is_capital_area"]:checked').value;
+
+                if (!businessNumber || !companyName || !ceoName || !companyType || !industry || !location) {
+                    alert('모든 필수 항목을 입력해주세요.');
+                    return false;
+                }
+
+                try {
+                    const response = await fetch('/api/companies', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            business_number: businessNumber,
+                            company_name: companyName,
+                            ceo_name: ceoName,
+                            company_type: companyType,
+                            industry: industry,
+                            location: location,
+                            is_capital_area: parseInt(isCapitalArea)
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        companyId = result.data.id;
+                        return true;
+                    } else {
+                        alert('사업자 등록에 실패했습니다: ' + result.error);
+                        return false;
+                    }
+                } catch (error) {
+                    alert('네트워크 오류가 발생했습니다.');
+                    return false;
+                }
+            }
+
+            // 투자 항목 추가
+            let investmentCount = 0;
+            function addInvestment() {
+                investmentCount++;
+                const container = document.getElementById('investment-list');
+                const div = document.createElement('div');
+                div.className = 'border border-gray-200 rounded-lg p-4';
+                div.innerHTML = \`
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-medium text-gray-700">투자 항목 \${investmentCount}</h4>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">시설 종류</label>
+                            <select class="investment-type w-full px-3 py-2 border border-gray-300 rounded">
+                                <option value="자동화설비">자동화설비</option>
+                                <option value="정보시스템">정보시스템</option>
+                                <option value="에너지절약시설">에너지절약시설</option>
+                                <option value="환경보전시설">환경보전시설</option>
+                                <option value="화재예방설비">화재예방설비 (안전시설)</option>
+                                <option value="스마트공장">스마트공장 설비</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">투자 금액 (원)</label>
+                            <input type="number" class="investment-amount w-full px-3 py-2 border border-gray-300 rounded" 
+                                   placeholder="10000000" min="0">
+                        </div>
+                    </div>
+                \`;
+                container.appendChild(div);
+            }
+
+            // 연구개발 항목 추가
+            let rndCount = 0;
+            function addRnd() {
+                rndCount++;
+                const container = document.getElementById('rnd-list');
+                const div = document.createElement('div');
+                div.className = 'border border-gray-200 rounded-lg p-4';
+                div.innerHTML = \`
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="font-medium text-gray-700">연구개발 항목 \${rndCount}</h4>
+                        <button onclick="this.parentElement.parentElement.remove()" class="text-red-500 hover:text-red-700">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">연구개발 유형</label>
+                            <select class="rnd-type w-full px-3 py-2 border border-gray-300 rounded">
+                                <option value="일반연구개발비">일반 연구개발</option>
+                                <option value="신성장동력연구개발비">신성장동력 연구개발</option>
+                                <option value="디자인개발비">디자인 개발</option>
+                                <option value="신기술개발비">데이터·AI·IoT 등 신기술</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">지출 금액 (원)</label>
+                            <input type="number" class="rnd-amount w-full px-3 py-2 border border-gray-300 rounded" 
+                                   placeholder="10000000" min="0">
+                        </div>
+                    </div>
+                \`;
+                container.appendChild(div);
+            }
+
+            // 최종 제출
+            async function submitAssessment() {
+                if (!companyId) {
+                    alert('사업자 정보를 먼저 등록해주세요.');
+                    return;
+                }
+
+                // 고용 데이터 수집
+                const employmentData = {
+                    total_employees: parseInt(document.getElementById('total_employees').value) || 0,
+                    employee_increase: parseInt(document.getElementById('employee_increase').value) || 0,
+                    youth_employees: parseInt(document.getElementById('youth_employees').value) || 0,
+                    disabled_employees: parseInt(document.getElementById('disabled_employees').value) || 0,
+                    career_break_women: parseInt(document.getElementById('career_break_women').value) || 0,
+                    total_salary: parseInt(document.getElementById('total_salary').value) || 0,
+                    insurance_paid: parseInt(document.getElementById('insurance_paid').value) || 0
+                };
+
+                // 투자 데이터 수집
+                const investmentData = [];
+                document.querySelectorAll('#investment-list > div').forEach(item => {
+                    const type = item.querySelector('.investment-type').value;
+                    const amount = parseInt(item.querySelector('.investment-amount').value) || 0;
+                    if (amount > 0) {
+                        investmentData.push({ facility_type: type, investment_amount: amount });
+                    }
+                });
+
+                // 연구개발 데이터 수집
+                const rndData = [];
+                document.querySelectorAll('#rnd-list > div').forEach(item => {
+                    const type = item.querySelector('.rnd-type').value;
+                    const amount = parseInt(item.querySelector('.rnd-amount').value) || 0;
+                    if (amount > 0) {
+                        rndData.push({ rnd_type: type, expense_amount: amount });
+                    }
+                });
+
+                // 기타 데이터 수집
+                const otherData = {
+                    startup_date: document.getElementById('startup_date').value || null,
+                    is_youth_startup: document.getElementById('is_youth_startup').checked,
+                    donation_amount: parseInt(document.getElementById('donation_amount').value) || 0,
+                    donation_type: document.getElementById('donation_type').value,
+                    business_income: parseInt(document.getElementById('business_income').value) || 0,
+                    calculated_tax: (parseInt(document.getElementById('business_income').value) || 0) * 0.10
+                };
+
+                const year = parseInt(document.getElementById('year').value) || 2024;
+
+                // 판정 API 호출
+                try {
+                    const response = await fetch('/api/assess', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            company_id: companyId,
+                            year: year,
+                            employmentData: employmentData,
+                            investmentData: investmentData,
+                            rndData: rndData,
+                            otherData: otherData
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('판정이 완료되었습니다!\\n\\n총 공제 가능액: ' + result.data.total_credit_amount.toLocaleString() + '원\\n적용 가능 항목: ' + result.data.eligible_count + '개');
+                        window.location.href = \`/result?company_id=\${companyId}&year=\${year}\`;
+                    } else {
+                        alert('판정 실행에 실패했습니다: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('네트워크 오류가 발생했습니다.');
+                    console.error(error);
+                }
+            }
+
+            // 페이지 로드 시 1단계 표시
+            showStep(1);
+        </script>
+    </body>
+    </html>
+  `)
+})
+
 export default app
