@@ -945,108 +945,165 @@ app.get('/', (c) => {
         <script src="https://cdn.tailwindcss.com"></script>
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
     </head>
-    <body class="bg-gray-50">
+    <body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
         <div class="min-h-screen">
             <!-- 헤더 -->
-            <header class="bg-indigo-600 text-white shadow-lg">
-                <div class="container mx-auto px-4 py-6">
-                    <h1 class="text-3xl font-bold">
-                        <i class="fas fa-file-invoice-dollar mr-3"></i>
-                        조특법 세액공제 자동 판정 시스템
-                    </h1>
-                    <p class="text-indigo-100 mt-2">조세특례제한법 기반 20개 세액공제 항목 자동 판정</p>
+            <header class="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 text-white shadow-2xl">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight">
+                                <i class="fas fa-file-invoice-dollar mr-2 sm:mr-3"></i>
+                                조특법 세액공제 판정 시스템
+                            </h1>
+                            <p class="text-indigo-100 mt-2 text-sm sm:text-base">조세특례제한법 기반 전문 세액공제 자동 분석</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <div class="inline-flex bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2">
+                                <i class="fas fa-shield-alt text-green-300 mr-2"></i>
+                                <span class="text-sm font-semibold">보안 연결</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
             <!-- 메인 컨텐츠 -->
-            <main class="container mx-auto px-4 py-8">
+            <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12">
                 <!-- 안내 카드 -->
-                <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                    <h2 class="text-2xl font-bold text-gray-800 mb-4">
-                        <i class="fas fa-info-circle text-indigo-600 mr-2"></i>
-                        시스템 소개
-                    </h2>
-                    <p class="text-gray-600 mb-4">
-                        본 시스템은 사업자의 재무·고용·투자·연구개발 데이터를 기반으로 
-                        조세특례제한법상 적용 가능한 세액공제를 자동으로 판정합니다.
-                    </p>
-                    <div class="grid md:grid-cols-4 gap-4 mt-6">
-                        <div class="text-center p-4 bg-indigo-50 rounded-lg">
-                            <i class="fas fa-users text-3xl text-indigo-600 mb-2"></i>
-                            <p class="font-semibold">고용 관련</p>
-                            <p class="text-sm text-gray-600">5개 항목</p>
+                <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 mb-8 border border-gray-100">
+                    <div class="flex items-start mb-6">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+                                <i class="fas fa-info-circle text-2xl text-indigo-600"></i>
+                            </div>
                         </div>
-                        <div class="text-center p-4 bg-green-50 rounded-lg">
-                            <i class="fas fa-building text-3xl text-green-600 mb-2"></i>
-                            <p class="font-semibold">중소기업</p>
-                            <p class="text-sm text-gray-600">5개 항목</p>
+                        <div class="ml-4">
+                            <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                                전문 세액공제 분석 시스템
+                            </h2>
+                            <p class="text-gray-600 text-sm sm:text-base">
+                                사업자의 재무·고용·투자·R&D 데이터 기반 조세특례제한법 자동 판정
+                            </p>
                         </div>
-                        <div class="text-center p-4 bg-blue-50 rounded-lg">
-                            <i class="fas fa-industry text-3xl text-blue-600 mb-2"></i>
-                            <p class="font-semibold">투자·시설</p>
-                            <p class="text-sm text-gray-600">4개 항목</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-6">
+                        <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-4 sm:p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 bg-white rounded-full flex items-center justify-center shadow-sm">
+                                <i class="fas fa-users text-2xl sm:text-3xl text-indigo-600"></i>
+                            </div>
+                            <p class="font-bold text-gray-800 text-sm sm:text-base">고용 관련</p>
+                            <p class="text-xs sm:text-sm text-gray-600 mt-1">5개 항목</p>
                         </div>
-                        <div class="text-center p-4 bg-purple-50 rounded-lg">
-                            <i class="fas fa-flask text-3xl text-purple-600 mb-2"></i>
-                            <p class="font-semibold">연구개발</p>
-                            <p class="text-sm text-gray-600">3개 항목</p>
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 sm:p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 bg-white rounded-full flex items-center justify-center shadow-sm">
+                                <i class="fas fa-building text-2xl sm:text-3xl text-green-600"></i>
+                            </div>
+                            <p class="font-bold text-gray-800 text-sm sm:text-base">중소기업</p>
+                            <p class="text-xs sm:text-sm text-gray-600 mt-1">5개 항목</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 sm:p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 bg-white rounded-full flex items-center justify-center shadow-sm">
+                                <i class="fas fa-industry text-2xl sm:text-3xl text-blue-600"></i>
+                            </div>
+                            <p class="font-bold text-gray-800 text-sm sm:text-base">투자·시설</p>
+                            <p class="text-xs sm:text-sm text-gray-600 mt-1">4개 항목</p>
+                        </div>
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 sm:p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-3 bg-white rounded-full flex items-center justify-center shadow-sm">
+                                <i class="fas fa-flask text-2xl sm:text-3xl text-purple-600"></i>
+                            </div>
+                            <p class="font-bold text-gray-800 text-sm sm:text-base">연구개발</p>
+                            <p class="text-xs sm:text-sm text-gray-600 mt-1">3개 항목</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- 기능 버튼 -->
-                <div class="grid md:grid-cols-2 gap-6">
-                    <a href="/assessment" class="block">
-                        <div class="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-shadow cursor-pointer border-2 border-transparent hover:border-indigo-500">
-                            <div class="flex items-center mb-4">
-                                <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mr-4">
-                                    <i class="fas fa-calculator text-2xl text-indigo-600"></i>
+                <div class="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+                    <a href="/assessment" class="block group">
+                        <div class="bg-gradient-to-br from-white to-indigo-50 rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-indigo-500 transform hover:-translate-y-2">
+                            <div class="flex items-start mb-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-calculator text-2xl sm:text-3xl text-white"></i>
+                                    </div>
                                 </div>
-                                <h3 class="text-xl font-bold text-gray-800">새로운 판정</h3>
+                                <div class="flex-1">
+                                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2 group-hover:text-indigo-600 transition-colors">
+                                        <i class="fas fa-arrow-right text-sm ml-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                        세액공제 판정 시작
+                                    </h3>
+                                    <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                                        사업자 정보를 입력하고 20개 세액공제 항목을 즉시 판정받으세요.
+                                    </p>
+                                    <div class="mt-4 inline-flex items-center text-indigo-600 text-sm font-semibold">
+                                        지금 시작하기
+                                        <i class="fas fa-chevron-right ml-2 text-xs"></i>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-gray-600">
-                                사업자 정보를 입력하고 세액공제 항목을 자동으로 판정받으세요.
-                            </p>
                         </div>
                     </a>
 
-                    <a href="/rules" class="block">
-                        <div class="bg-white rounded-lg shadow-md p-8 hover:shadow-xl transition-shadow cursor-pointer border-2 border-transparent hover:border-green-500">
-                            <div class="flex items-center mb-4">
-                                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                                    <i class="fas fa-book text-2xl text-green-600"></i>
+                    <a href="/rules" class="block group">
+                        <div class="bg-gradient-to-br from-white to-green-50 rounded-2xl shadow-lg p-6 sm:p-8 hover:shadow-2xl transition-all duration-300 cursor-pointer border-2 border-transparent hover:border-green-500 transform hover:-translate-y-2">
+                            <div class="flex items-start mb-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl flex items-center justify-center mr-4 shadow-lg group-hover:scale-110 transition-transform">
+                                        <i class="fas fa-book text-2xl sm:text-3xl text-white"></i>
+                                    </div>
                                 </div>
-                                <h3 class="text-xl font-bold text-gray-800">규칙 조회</h3>
+                                <div class="flex-1">
+                                    <h3 class="text-lg sm:text-xl font-bold text-gray-800 mb-2 group-hover:text-green-600 transition-colors">
+                                        <i class="fas fa-arrow-right text-sm ml-2 opacity-0 group-hover:opacity-100 transition-opacity"></i>
+                                        세액공제 규칙 조회
+                                    </h3>
+                                    <p class="text-gray-600 text-sm sm:text-base leading-relaxed">
+                                        20개 세액공제 규칙과 적용 요건을 상세하게 확인하세요.
+                                    </p>
+                                    <div class="mt-4 inline-flex items-center text-green-600 text-sm font-semibold">
+                                        규칙 보기
+                                        <i class="fas fa-chevron-right ml-2 text-xs"></i>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="text-gray-600">
-                                20개 세액공제 규칙과 적용 요건을 상세하게 확인하세요.
-                            </p>
                         </div>
                     </a>
                 </div>
 
                 <!-- 특징 안내 -->
-                <div class="mt-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg shadow-lg p-8 text-white">
-                    <h3 class="text-2xl font-bold mb-6">시스템 특징</h3>
-                    <div class="grid md:grid-cols-3 gap-6">
-                        <div>
-                            <i class="fas fa-bolt text-3xl mb-3"></i>
-                            <h4 class="font-semibold mb-2">실시간 판정</h4>
-                            <p class="text-indigo-100 text-sm">
+                <div class="mt-8 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl shadow-2xl p-6 sm:p-8 lg:p-10 text-white">
+                    <h3 class="text-xl sm:text-2xl font-bold mb-6 sm:mb-8 text-center">
+                        <i class="fas fa-star mr-2"></i>
+                        시스템 특징
+                    </h3>
+                    <div class="grid sm:grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 hover:bg-white/20 transition-all duration-300">
+                            <div class="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mb-4 mx-auto">
+                                <i class="fas fa-bolt text-3xl"></i>
+                            </div>
+                            <h4 class="font-bold mb-3 text-center text-lg">실시간 판정</h4>
+                            <p class="text-indigo-100 text-sm text-center leading-relaxed">
                                 입력 즉시 20개 항목을 자동으로 판정하여 결과를 제공합니다.
                             </p>
                         </div>
-                        <div>
-                            <i class="fas fa-shield-alt text-3xl mb-3"></i>
-                            <h4 class="font-semibold mb-2">정확한 계산</h4>
-                            <p class="text-indigo-100 text-sm">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 hover:bg-white/20 transition-all duration-300">
+                            <div class="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mb-4 mx-auto">
+                                <i class="fas fa-shield-alt text-3xl"></i>
+                            </div>
+                            <h4 class="font-bold mb-3 text-center text-lg">정확한 계산</h4>
+                            <p class="text-indigo-100 text-sm text-center leading-relaxed">
                                 최신 조세특례제한법을 기반으로 정확한 공제액을 산출합니다.
                             </p>
                         </div>
-                        <div>
-                            <i class="fas fa-chart-line text-3xl mb-3"></i>
-                            <h4 class="font-semibold mb-2">상세한 분석</h4>
-                            <p class="text-indigo-100 text-sm">
+                        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 hover:bg-white/20 transition-all duration-300">
+                            <div class="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center mb-4 mx-auto">
+                                <i class="fas fa-chart-line text-3xl"></i>
+                            </div>
+                            <h4 class="font-bold mb-3 text-center text-lg">상세한 분석</h4>
+                            <p class="text-indigo-100 text-sm text-center leading-relaxed">
                                 판정 사유와 계산 근거를 상세하게 확인할 수 있습니다.
                             </p>
                         </div>
@@ -1057,8 +1114,7 @@ app.get('/', (c) => {
             <!-- 푸터 -->
             <footer class="bg-gray-800 text-gray-300 mt-12 py-6">
                 <div class="container mx-auto px-4 text-center">
-                    <p>&copy; 2025 조특법 세액공제 자동 판정 시스템. All rights reserved.</p>
-                    <p class="text-sm mt-2 text-gray-400">
+                    <p class="text-sm text-gray-400">
                         본 시스템은 참고용이며, 실제 세액 신고 시 전문가와 상담하시기 바랍니다.
                     </p>
                 </div>
